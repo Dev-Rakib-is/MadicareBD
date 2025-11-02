@@ -1,4 +1,3 @@
-// controllers/authController.js
 const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const jwt = require('jsonwebtoken');
@@ -22,7 +21,15 @@ const registerPatient = async (req, res) => {
     if (exists) return res.status(400).json({ message: 'User already exists' });
 
     const user = await User.create({ name, email, password, role: 'PATIENT', photo_url });
-    res.status(201).json({ token: generateToken(user._id), user });
+
+    res.cookie('token', generateToken(user._id), {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(201).json({ message: 'Registration successful', user });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -45,7 +52,14 @@ const registerDoctor = async (req, res) => {
     const user = await User.create({ name, email, password, role: 'DOCTOR', photo_url });
     await Doctor.create({ name, specialization, photo_url, user: user._id, approved: false });
 
-    res.status(201).json({ token: generateToken(user._id), user });
+    res.cookie('token', generateToken(user._id), {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(201).json({ message: 'Registration successful', user });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -61,13 +75,20 @@ const login = async (req, res) => {
     const match = await user.matchPassword(password);
     if (!match) return res.status(400).json({ message: 'Invalid credentials' });
 
-    res.json({ token: generateToken(user._id), user });
+    res.cookie('token', generateToken(user._id), {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({ message: 'Login successful', user });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Get logged-in user info
+// Logged-in user info
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
@@ -77,4 +98,26 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { registerPatient, registerDoctor, login, getMe };
+//  Profile update
+const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const { name, password } = req.body;
+    if (name) user.name = name;
+    if (password) user.password = password;
+
+    if (req.file) {
+      const result = await uploadImage(req.file.path || req.file.buffer, 'profiles');
+      user.photo_url = result.secure_url;
+    }
+
+    await user.save();
+    res.json({ message: 'Profile updated', user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { registerPatient, registerDoctor, login, getMe, updateProfile };
