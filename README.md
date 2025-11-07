@@ -46,6 +46,7 @@ This is the backend for MediCare BD app, including:
 - `/auth/register/patient` POST
 - `/auth/register/doctor` POST
 - `/auth/login` POST
+- /specializations
 - `/me` GET
 - `/doctors` GET
 - `/appointments` POST/GET/PATCH
