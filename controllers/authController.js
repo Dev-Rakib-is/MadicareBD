@@ -9,18 +9,18 @@ const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expires
 // Patient registration
 const registerPatient = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, age, gender } = req.body;
     let photo_url = '';
 
     if (req.file) {
-      const result = await uploadImage(req.file.path || req.file.buffer, 'patients');
+      const result = await uploadImage(req.file.buffer, 'patients');
       photo_url = result.secure_url;
     }
 
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: 'User already exists' });
 
-    const user = await User.create({ name, email, password, role: 'PATIENT', photo_url });
+    const user = await User.create({ name, email, password, role: 'PATIENT', age, gender, photo_url });
 
     res.cookie('token', generateToken(user._id), {
       httpOnly: true,
@@ -38,19 +38,19 @@ const registerPatient = async (req, res) => {
 // Doctor registration
 const registerDoctor = async (req, res) => {
   try {
-    const { name, email, password, specialization } = req.body;
+    const { name, email, password, age, gender, specialization } = req.body;
     let photo_url = '';
 
     if (req.file) {
-      const result = await uploadImage(req.file.path || req.file.buffer, 'doctors');
+      const result = await uploadImage(req.file.buffer, 'doctors');
       photo_url = result.secure_url;
     }
 
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: 'User already exists' });
 
-    const user = await User.create({ name, email, password, role: 'DOCTOR', photo_url });
-    await Doctor.create({ name, specialization, photo_url, user: user._id, approved: false });
+    const user = await User.create({ name, email, password, role: 'DOCTOR', age, gender, photo_url });
+    await Doctor.create({ user: user._id, name, age, gender, specialization, photo_url, approved: false });
 
     res.cookie('token', generateToken(user._id), {
       httpOnly: true,
@@ -88,7 +88,7 @@ const login = async (req, res) => {
   }
 };
 
-// Logged-in user info
+// Get logged-in user
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
@@ -98,7 +98,7 @@ const getMe = async (req, res) => {
   }
 };
 
-//  Profile update
+// Update profile
 const updateProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -109,7 +109,7 @@ const updateProfile = async (req, res) => {
     if (password) user.password = password;
 
     if (req.file) {
-      const result = await uploadImage(req.file.path || req.file.buffer, 'profiles');
+      const result = await uploadImage(req.file.buffer, 'profiles');
       user.photo_url = result.secure_url;
     }
 

@@ -16,12 +16,12 @@ const specializations = [
   { _id: 12, name: "Ophthalmologist (Eye Specialist)" },
   { _id: 13, name: "ENT (Ear, Nose, Throat)" },
   { _id: 14, name: "Urologist" },
-  { _id: 14, name: "Endocrinologist" },
-  { _id: 14, name: "Gastroenterologist" },
-  { _id: 14, name: "Pulmonologist (Lung Specialist)" },
-  { _id: 14, name: "Nephrologist (Kidney Specialist)" },
-  { _id: 14, name: "Oncologist (Cancer Specialist)" },
-  { _id: 14, name: "Rheumatologist" },
+  { _id: 15, name: "Endocrinologist" },
+  { _id: 16, name: "Gastroenterologist" },
+  { _id: 17, name: "Pulmonologist (Lung Specialist)" },
+  { _id: 18, name: "Nephrologist (Kidney Specialist)" },
+  { _id: 19, name: "Oncologist (Cancer Specialist)" },
+  { _id: 20, name: "Rheumatologist" },
 ];
 
 router.get("/", (req, res) => {
