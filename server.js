@@ -1,15 +1,21 @@
-require("dotenv").config();
-const app = require("./app");
+const express = require("express");
 const cors = require("cors");
-const PORT = process.env.PORT || 5000;
+const cookieParser = require("cookie-parser");
+require("dotenv").config();
+
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
 
 app.use(
   cors({
-    origin: ["https://madicarebd.vercel.app", "http://localhost:5173"],
+    origin: ["https://medicare-bd.vercel.app", "http://localhost:5173"],
     credentials: true,
   })
 );
 
-app.set("trust proxy", 1);
+app.set("trust proxy", 1); 
 
-app.listen(PORT, () => console.log(` Server running on port ${PORT}`));
+app.listen(process.env.PORT || 5000, () =>
+  console.log(`Server running on port ${process.env.PORT || 5000}`)
+);

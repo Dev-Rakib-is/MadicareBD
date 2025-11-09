@@ -1,173 +1,50 @@
 const User = require("../models/User");
-const Doctor = require("../models/Doctor");
 const jwt = require("jsonwebtoken");
 const { uploadImage } = require("../utils/cloudinary");
 
-// Generate JWT Token
+// Generate JWT token
 const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
+  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-// Patient Registration
-const registerPatient = async (req, res) => {
+// Middleware to protect routes
+const protect = async (req, res, next) => {
   try {
-    const { name, email, password, age, gender } = req.body;
-    let photo_url = "";
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ message: "Not authorized" });
 
-    if (req.file) {
-      const result = await uploadImage(req.file.buffer, "patients");
-      photo_url = result.secure_url;
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id).select("-password");
+    if (!req.user) return res.status(401).json({ message: "Not authorized" });
 
-    const exists = await User.findOne({ email });
-    if (exists)
-      return res.status(400).json({ message: "User already exists" });
-
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role: "PATIENT",
-      age,
-      gender,
-      photo_url,
-    });
-
-    const token = generateToken(user._id);
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true, // ✅ IMPORTANT for cross-site
-      sameSite: "None", // ✅ Required with secure:true
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.status(201).json({ message: "Registration successful", user });
+    next();
   } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Doctor Registration
-const registerDoctor = async (req, res) => {
-  try {
-    const { name, email, password, age, gender, specialization } = req.body;
-    let photo_url = "";
-
-    if (req.file) {
-      const result = await uploadImage(req.file.buffer, "doctors");
-      photo_url = result.secure_url;
-    }
-
-    const exists = await User.findOne({ email });
-    if (exists)
-      return res.status(400).json({ message: "User already exists" });
-
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role: "DOCTOR",
-      age,
-      gender,
-      photo_url,
-    });
-
-    await Doctor.create({
-      user: user._id,
-      name,
-      age,
-      gender,
-      specialization,
-      photo_url,
-      approved: false,
-    });
-
-    const token = generateToken(user._id);
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.status(201).json({ message: "Registration successful", user });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(401).json({ message: "Not authorized" });
   }
 };
 
 // Login
 const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  if (!user || !(await user.matchPassword(password)))
+    return res.status(400).json({ message: "Invalid credentials" });
 
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(400).json({ message: "Invalid credentials" });
+  const token = generateToken(user._id);
 
-    const match = await user.matchPassword(password);
-    if (!match)
-      return res.status(400).json({ message: "Invalid credentials" });
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 
-    const token = generateToken(user._id);
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.json({ message: "Login successful", user });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  res.json({ message: "Login successful", user });
 };
 
 // Get logged-in user
 const getMe = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select("-password");
-    if (!user) return res.status(401).json({ message: "Not authorized" });
-
-    res.json({ user });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  res.json({ user: req.user });
 };
 
-// Update Profile
-const updateProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    const { name, password } = req.body;
-    if (name) user.name = name;
-    if (password) user.password = password;
-
-    if (req.file) {
-      const result = await uploadImage(req.file.buffer, "profiles");
-      user.photo_url = result.secure_url;
-    }
-
-    await user.save();
-    res.json({ message: "Profile updated", user });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-module.exports = {
-  registerPatient,
-  registerDoctor,
-  login,
-  getMe,
-  updateProfile,
-};
+module.exports = { login, getMe, protect };
