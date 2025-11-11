@@ -1,17 +1,13 @@
 
-const express = require("express");
+const express = require('express');
+const { getDoctors, getTopRatedDoctors, favoriteDoctor } = require('../controllers/doctorController');
+const { protect } = require('../middleware/authMiddleware');
+
 const router = express.Router();
-const { protect } = require("../middleware/authMiddleware");
-const Doctor = require("../models/Doctor");
+router.use(protect);
 
-
-router.get("/", protect, async (req, res) => {
-  try {
-    const doctors = await Doctor.find().populate("user", "-password");
-    res.json({ doctors });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.get('/', getDoctors);
+router.get('/top-rated', getTopRatedDoctors);
+router.post('/:id/favorite', favoriteDoctor);
 
 module.exports = router;

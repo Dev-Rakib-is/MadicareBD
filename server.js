@@ -1,13 +1,7 @@
-
 require("dotenv").config();
-const express = require("express");
-const app = express();
+const app = require("./app");
 const cors = require("cors");
-const cookieParser = require("cookie-parser");
-const doctorRoutes = require("./routes/doctorRoutes");
-
-app.use(express.json());
-app.use(cookieParser());
+const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
@@ -16,8 +10,6 @@ app.use(
   })
 );
 
-// Routes
-app.use("/api/v1/doctors", doctorRoutes);
+app.set("trust proxy", 1);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(` Server running on port ${PORT}`));
