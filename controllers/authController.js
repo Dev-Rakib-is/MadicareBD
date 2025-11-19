@@ -21,8 +21,7 @@ const registerPatient = async (req, res) => {
     }
 
     const exists = await User.findOne({ email });
-    if (exists)
-      return res.status(400).json({ message: "User already exists" });
+    if (exists) return res.status(400).json({ message: "User already exists" });
 
     const user = await User.create({
       name,
@@ -62,8 +61,7 @@ const registerDoctor = async (req, res) => {
     }
 
     const exists = await User.findOne({ email });
-    if (exists)
-      return res.status(400).json({ message: "User already exists" });
+    if (exists) return res.status(400).json({ message: "User already exists" });
 
     const user = await User.create({
       name,
@@ -90,7 +88,6 @@ const registerDoctor = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
-      
       sameSite: "None",
       path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -108,12 +105,10 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user)
-      return res.status(400).json({ message: "Invalid credentials" });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
     const match = await user.matchPassword(password);
-    if (!match)
-      return res.status(400).json({ message: "Invalid credentials" });
+    if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
     const token = generateToken(user._id);
 
@@ -129,6 +124,19 @@ const login = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+};
+
+// Logout
+const logout = (req, res) => {
+  res.cookie("token", "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    path: "/",
+    expires: new Date(0),
+  });
+
+  res.json({ message: "Logged out successfully" });
 };
 
 // Get logged-in user
@@ -169,6 +177,7 @@ module.exports = {
   registerPatient,
   registerDoctor,
   login,
+  logout,
   getMe,
   updateProfile,
 };
