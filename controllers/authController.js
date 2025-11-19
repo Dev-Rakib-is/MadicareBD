@@ -3,11 +3,23 @@ const Doctor = require("../models/Doctor");
 const jwt = require("jsonwebtoken");
 const { uploadImage } = require("../utils/cloudinary");
 
+// Determine environment
+const isProduction = process.env.NODE_ENV === "production";
+
 // Generate JWT Token
 const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
+  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+// Set cookie helper
+const setTokenCookie = (res, token) => {
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: isProduction,            // HTTPS in production, HTTP in local
+    sameSite: isProduction ? "None" : "Lax",
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
+};
 
 // Patient Registration
 const registerPatient = async (req, res) => {
@@ -34,14 +46,7 @@ const registerPatient = async (req, res) => {
     });
 
     const token = generateToken(user._id);
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true, 
-      sameSite: "None", 
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    setTokenCookie(res, token);
 
     res.status(201).json({ message: "Registration successful", user });
   } catch (err) {
@@ -84,14 +89,7 @@ const registerDoctor = async (req, res) => {
     });
 
     const token = generateToken(user._id);
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    setTokenCookie(res, token);
 
     res.status(201).json({ message: "Registration successful", user });
   } catch (err) {
@@ -111,14 +109,7 @@ const login = async (req, res) => {
     if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
     const token = generateToken(user._id);
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    setTokenCookie(res, token);
 
     res.json({ message: "Login successful", user });
   } catch (err) {
@@ -130,8 +121,8 @@ const login = async (req, res) => {
 const logout = (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,
-    secure: true,
-    sameSite: "None",
+    secure: isProduction,
+    sameSite: isProduction ? "None" : "Lax",
     path: "/",
     expires: new Date(0),
   });
